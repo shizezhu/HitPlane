@@ -12,7 +12,7 @@ import cn.szz.plane.core.entity.paint.Rect;
  * @author shizezhu
  * @time 2022年4月7日 上午10:17:22
  */
-public class FlyObj implements Painter {
+public abstract class FlyObj implements Painter {
 
 	protected Rect rect; // 矩形
 	protected int life; // 生命值

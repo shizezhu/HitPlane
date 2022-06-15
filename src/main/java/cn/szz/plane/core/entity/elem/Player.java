@@ -6,25 +6,31 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import cn.szz.plane.config.UIConfig;
 import cn.szz.plane.core.Animator;
 import cn.szz.plane.core.Mover;
+import cn.szz.plane.core.Sounder;
 import cn.szz.plane.core.entity.User;
 import cn.szz.plane.core.entity.em.ImageEnum;
 import cn.szz.plane.core.entity.em.PartAlignEnum;
+import cn.szz.plane.core.entity.em.SoundPathEnum;
 import cn.szz.plane.core.entity.paint.Coordinate;
 import cn.szz.plane.core.entity.paint.CoordinateImage;
 import cn.szz.plane.core.entity.paint.CoordinatePart;
 import cn.szz.plane.core.entity.paint.Image;
 import cn.szz.plane.core.entity.paint.Rect;
 import cn.szz.plane.core.entity.record.TimesRecord;
+import cn.szz.plane.core.entity.sound.DefaultSound;
+import cn.szz.plane.core.entity.sound.Sound;
 import cn.szz.plane.ui.event.MouseListenerEvent;
 
-public class Player extends FlyObj implements Animator, Mover, MouseListenerEvent {
+public class Player extends FlyObj implements Animator, Mover, Sounder, MouseListenerEvent {
 
 	private static final Image[][] IMAGE_ARRAY = {
 			{ new Image(ImageEnum.PLAYER, 393, 102, 115, 92), new Image(ImageEnum.PLAYER, 126, 107, 117, 93),
@@ -47,24 +53,23 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 			{ new Image(ImageEnum.PLAYER_FIRE_02, 0, 0, 21, 50), new Image(ImageEnum.PLAYER_FIRE_02, 21, 0, 21, 50) },
 			{ new Image(ImageEnum.PLAYER_FIRE_03, 0, 0, 21, 50), new Image(ImageEnum.PLAYER_FIRE_03, 21, 0, 21, 50) } };
 
-	private static final Image[] SCORE_IMAGE_ARRAY = {
-			new Image(ImageEnum.SCORE, 2, 0, 66, 86),
-			new Image(ImageEnum.SCORE, 68, 0, 60, 86),
-			new Image(ImageEnum.SCORE, 128, 0, 65, 86),
-			new Image(ImageEnum.SCORE, 193, 0, 64, 86),
-			new Image(ImageEnum.SCORE, 257, 0, 63, 86),
-			new Image(ImageEnum.SCORE, 320, 0, 64, 86),
-			new Image(ImageEnum.SCORE, 384, 0, 64, 86),
-			new Image(ImageEnum.SCORE, 448, 0, 64, 86),
-			new Image(ImageEnum.SCORE, 512, 0, 64, 86),
+	private static final Image[] SCORE_IMAGE_ARRAY = { new Image(ImageEnum.SCORE, 2, 0, 66, 86),
+			new Image(ImageEnum.SCORE, 68, 0, 60, 86), new Image(ImageEnum.SCORE, 128, 0, 65, 86),
+			new Image(ImageEnum.SCORE, 193, 0, 64, 86), new Image(ImageEnum.SCORE, 257, 0, 63, 86),
+			new Image(ImageEnum.SCORE, 320, 0, 64, 86), new Image(ImageEnum.SCORE, 384, 0, 64, 86),
+			new Image(ImageEnum.SCORE, 448, 0, 64, 86), new Image(ImageEnum.SCORE, 512, 0, 64, 86),
 			new Image(ImageEnum.SCORE, 576, 0, 64, 86) };
 
 	private static final Image TROUGH_IMAGE = new Image(ImageEnum.ENEMY, 0, 200, 258, 16);
 	private static final Image BLOOD_IMAGE = new Image(ImageEnum.ENEMY, 3, 222, 250, 7);
+	private static final Image STAR_IMAGE = new Image(ImageEnum.GAME_UI, 308, 80, 63, 63);
 
 	protected final TimesRecord timesRecord = new TimesRecord(); // 时间记录器
 	protected int olife; // 原始生命
 	protected int score; // 得分
+	protected int star; // 得星
+	protected int level; // 等级
+	protected int levelTime; // 等级倒计时
 	protected User user; // 用户信息
 	protected Coordinate[] bulletCoordinates; // 子弹坐标
 	protected Coordinate[] fireCoordinates; // 尾喷坐标
@@ -73,18 +78,24 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 	protected CoordinateImage heartImage; // 心图片
 	protected CoordinateImage troughImage; // 血槽图片
 	protected CoordinateImage bloodImage; // 血量图片
+	protected Set<Sound> soundSet; // 音效
 
 	public Player(User user) {
 		this.life = 100;
 		this.damage = Integer.MAX_VALUE;
 		this.olife = life;
 		this.score = 0;
+		this.level = 1;
 		this.user = user;
 		this.firePartIndex = 0;
-		this.heartImage = new CoordinateImage(new Image(ImageEnum.GAME_UI, 374, 21, 54, 54), 10, 10, 16, 16);
-		this.troughImage = new CoordinateImage(TROUGH_IMAGE, 26, 12, 104, 12);
-		this.bloodImage = new CoordinateImage(BLOOD_IMAGE, 28, 14, 100, 8);
-		setLevel(1);
+		this.rect = getCoordinateImage(user.getPlayerImageType(), level);
+		this.bulletCoordinates = getBulletCoordinates(user.getPlayerImageType(), level);
+		this.fireCoordinates = getFireCoordinates(user.getPlayerImageType(), level);
+		this.fireParts = getFireCoordinatePart(getFireCoordinates(), user.getPlayerFireImageType(), level);
+		this.heartImage = new CoordinateImage(new Image(ImageEnum.GAME_UI, 374, 21, 54, 54), 10, 16, 16, 16);
+		this.troughImage = new CoordinateImage(TROUGH_IMAGE, 26, 18, 104, 12);
+		this.bloodImage = new CoordinateImage(BLOOD_IMAGE, 28, 20, 100, 8);
+		this.soundSet = new HashSet<>();
 	}
 
 	@Override
@@ -121,8 +132,18 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 		getHeartImage().draw(g);
 		getTroughImage().draw(g);
 		getBloodImage().draw(g);
-		getScoreCoordinateImage(score).forEach(scoreCoordinateImage -> scoreCoordinateImage.draw(g));
+		getScoreCoordinateImage(getScore()).forEach(coordinateImage -> coordinateImage.draw(g));
+		getStarCoordinateImage(getStar()).forEach(coordinateImage -> coordinateImage.draw(g));
 
+	}
+
+	@Override
+	public void sound() {
+		Set<Sound> soundCache = soundSet;
+		soundSet = new HashSet<>();
+		soundCache.forEach(sound -> {
+			sound.play();
+		});
 	}
 
 	@Override
@@ -142,13 +163,35 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 		this.score = getScore() + score;
 	}
 
-	public Player setLevel(int level) {
+	public void addStar(int star) {
+		this.star = getStar() + star;
+	}
+
+	@Override
+	public void checkHit(FlyObj flyObj) {
+		if (!isHit(flyObj)) {
+			return;
+		}
+		subLife(flyObj.getDamage());
+		if (flyObj instanceof Star) {
+			Star star = (Star) flyObj;
+			addStar(star.getValue());
+			soundSet.add(new DefaultSound(SoundPathEnum.STAR));
+		} else if (flyObj instanceof Level) {
+			Level level = (Level) flyObj;
+			setLevel(level.getValue());
+			soundSet.add(new DefaultSound(SoundPathEnum.LEVEL));
+		}
+	}
+
+	public void setLevel(int level) {
 		User user = getUser();
-		this.rect = getCoordinateImage(user.getPlayerImageType(), level);
+		Rect rect = getRect();
+		this.level = level;
+		this.rect = getCoordinateImage(user.getPlayerImageType(), level, new Coordinate(rect.getX(), rect.getY()));
 		this.bulletCoordinates = getBulletCoordinates(user.getPlayerImageType(), level);
 		this.fireCoordinates = getFireCoordinates(user.getPlayerImageType(), level);
 		this.fireParts = getFireCoordinatePart(getFireCoordinates(), user.getPlayerFireImageType(), level);
-		return this;
 	}
 
 	public List<PlayerBullet> shoot() {
@@ -163,13 +206,18 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 
 	protected CoordinateImage getCoordinateImage(int type, int level) {
 		Image image = getImage(type, level);
-		return new CoordinateImage(image, getImageCoordinate(image));
+		return new CoordinateImage(image, getDefaultImageCoordinate(image));
+	}
+
+	protected CoordinateImage getCoordinateImage(int type, int level, Coordinate coordinate) {
+		Image image = getImage(type, level);
+		return new CoordinateImage(image, coordinate);
 	}
 
 	protected CoordinatePart[][] getFireCoordinatePart(Coordinate[] fireCoordinates, int type, int level) {
 		Image[] fireImages = getFireImages(type);
 		return Stream.of(fireImages).map(fireImage -> Stream.of(fireCoordinates)
-				.map(fireCoordinate -> new CoordinatePart(fireImage, fireCoordinate, rect, PartAlignEnum.BOTTOM_CENTER))
+				.map(fireCoordinate -> new CoordinatePart(fireImage, fireCoordinate, getRect(), PartAlignEnum.BOTTOM_CENTER))
 				.toArray(CoordinatePart[]::new)).toArray(CoordinatePart[][]::new);
 	}
 
@@ -193,7 +241,7 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 		}
 	}
 
-	protected Coordinate getImageCoordinate(Image image) {
+	protected Coordinate getDefaultImageCoordinate(Image image) {
 		return new Coordinate((UIConfig.INSTANCE.getWindowWidth() - image.getWidth()) / 2,
 				UIConfig.INSTANCE.getWindowHeight());
 	}
@@ -252,16 +300,31 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 	}
 
 	protected List<CoordinateImage> getScoreCoordinateImage(int score) {
-		List<CoordinateImage> scoreCoordinateImageList = new ArrayList<>();
-		List<Integer> scoreNumList = Stream.of(String.valueOf(score).split("")).map(Integer::parseInt)
+		List<CoordinateImage> coordinateImageList = new ArrayList<>();
+		List<Integer> numList = Stream.of(String.valueOf(score).split("")).map(Integer::parseInt)
 				.collect(Collectors.toList());
-		Collections.reverse(scoreNumList);
-		for (int i = 0; i < scoreNumList.size(); i++) {
-			int scoreNum = scoreNumList.get(i);
-			scoreCoordinateImageList.add(new CoordinateImage(SCORE_IMAGE_ARRAY[scoreNum],
-					UIConfig.INSTANCE.getWindowWidth() - 30 - 20 * i, 10, 20, 26));
+		Collections.reverse(numList);
+		for (int i = 1; i <= numList.size(); i++) {
+			int num = numList.get(i - 1);
+			coordinateImageList.add(new CoordinateImage(SCORE_IMAGE_ARRAY[num],
+					UIConfig.INSTANCE.getWindowWidth() - 80 - 30 * i, 10, 30, 40));
 		}
-		return scoreCoordinateImageList;
+		return coordinateImageList;
+	}
+
+	protected List<CoordinateImage> getStarCoordinateImage(int star) {
+		List<CoordinateImage> coordinateImageList = new ArrayList<>();
+		List<Integer> numList = Stream.of(String.valueOf(star).split("")).map(Integer::parseInt)
+				.collect(Collectors.toList());
+		Collections.reverse(numList);
+		for (int i = 1; i <= numList.size(); i++) {
+			int num = numList.get(i - 1);
+			coordinateImageList.add(new CoordinateImage(SCORE_IMAGE_ARRAY[num],
+					UIConfig.INSTANCE.getWindowWidth() - 10 - 15 * i, 70, 15, 20));
+		}
+		coordinateImageList.add(new CoordinateImage(STAR_IMAGE,
+				UIConfig.INSTANCE.getWindowWidth() - 35 - 15 * numList.size(), 70, 20, 20));
+		return coordinateImageList;
 	}
 
 	public int getOlife() {
@@ -270,6 +333,10 @@ public class Player extends FlyObj implements Animator, Mover, MouseListenerEven
 
 	public int getScore() {
 		return score;
+	}
+
+	public int getStar() {
+		return star;
 	}
 
 	public User getUser() {

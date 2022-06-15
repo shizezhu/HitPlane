@@ -8,30 +8,30 @@ package cn.szz.plane.core.entity.paint;
  */
 public class Coordinate {
 
-    protected int x;
-    protected int y;
+	protected int x;
+	protected int y;
 
-    public Coordinate(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
+	public Coordinate(int x, int y) {
+		this.x = x;
+		this.y = y;
+	}
 
-    public int getX() {
-        return x;
-    }
+	public int getX() {
+		return x;
+	}
 
-    public Coordinate setX(int x) {
-        this.x = x;
-        return this;
-    }
+	public Coordinate setX(int x) {
+		this.x = x;
+		return this;
+	}
 
-    public int getY() {
-        return y;
-    }
+	public int getY() {
+		return y;
+	}
 
-    public Coordinate setY(int y) {
-        this.y = y;
-        return this;
-    }
+	public Coordinate setY(int y) {
+		this.y = y;
+		return this;
+	}
 
 }

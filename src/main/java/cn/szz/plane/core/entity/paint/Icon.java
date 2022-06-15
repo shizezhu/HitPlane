@@ -7,6 +7,12 @@ import javax.swing.ImageIcon;
 import cn.szz.plane.core.Painter;
 import cn.szz.plane.core.entity.paint.Coordinate;
 
+/**
+ * ICON
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午11:01:25
+ */
 public class Icon extends Coordinate implements Painter {
 
 	protected ImageIcon image;

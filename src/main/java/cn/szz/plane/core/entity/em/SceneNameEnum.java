@@ -2,23 +2,20 @@ package cn.szz.plane.core.entity.em;
 
 import cn.szz.plane.utils.CheckUtils;
 
+/**
+ * 场景名称
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午11:00:38
+ */
 public enum SceneNameEnum {
 
 	READY("READY"),
-	GAME_READY("GAME_READY"),
-	GAME_WARN("GAME_WARN"),
 	GAME_LEVEL_01("GAME_LEVEL_01"),
-	GAME_LEVEL_01_BOSS("GAME_LEVEL_01_BOSS"),
 	GAME_LEVEL_02("GAME_LEVEL_02"),
-	GAME_LEVEL_02_BOSS("GAME_LEVEL_02_BOSS"),
 	GAME_LEVEL_03("GAME_LEVEL_03"),
-	GAME_LEVEL_03_BOSS("GAME_LEVEL_03_BOSS"),
 	GAME_LEVEL_04("GAME_LEVEL_04"),
-	GAME_LEVEL_04_BOSS("GAME_LEVEL_04_BOSS"),
-	GAME_LEVEL_05("GAME_LEVEL_05"),
-	GAME_LEVEL_05_BOSS("GAME_LEVEL_05_BOSS"),
-	PAUSE("PAUSE"),
-	OVER("OVER");
+	GAME_LEVEL_05("GAME_LEVEL_05");
 	
 	private String value;
 

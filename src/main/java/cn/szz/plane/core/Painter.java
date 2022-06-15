@@ -3,7 +3,7 @@ package cn.szz.plane.core;
 import java.awt.Graphics;
 
 /**
- * 画家
+ * 会画的
  *
  * @author Shi Zezhu
  * @date 2020年11月17日 下午6:11:10

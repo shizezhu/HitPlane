@@ -6,6 +6,12 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
+/**
+ * 图片
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午10:59:41
+ */
 public enum ImageEnum {
 
 	ICON("/images/icon.png"),
@@ -65,7 +71,7 @@ public enum ImageEnum {
     	return new ImageIcon(image);
     }
     
-    public static BufferedImage readImage(String path) {
+    private BufferedImage readImage(String path) {
         try {
             return ImageIO.read(ImageEnum.class.getResource(path));
         } catch (IOException e) {

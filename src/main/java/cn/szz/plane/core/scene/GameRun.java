@@ -13,6 +13,7 @@ import cn.szz.plane.config.UIConfig;
 import cn.szz.plane.core.entity.elem.Blast;
 import cn.szz.plane.core.entity.elem.Enemy;
 import cn.szz.plane.core.entity.elem.GameBg;
+import cn.szz.plane.core.entity.elem.ItemMover;
 import cn.szz.plane.core.entity.elem.Player;
 import cn.szz.plane.core.entity.elem.PlayerBullet;
 import cn.szz.plane.core.entity.em.ImageEnum;
@@ -22,6 +23,7 @@ import cn.szz.plane.core.entity.paint.Image;
 import cn.szz.plane.core.entity.record.TimesRecord;
 import cn.szz.plane.core.entity.sound.DefaultSound;
 import cn.szz.plane.core.entity.sound.Sound;
+import cn.szz.plane.ui.Window;
 import cn.szz.plane.ui.event.MouseListenerEvent;
 import cn.szz.plane.ui.listener.MouseEnteredListener;
 import cn.szz.plane.ui.listener.MouseExitedListener;
@@ -31,10 +33,10 @@ import cn.szz.plane.ui.listener.MouseReleasedListener;
 public abstract class GameRun extends Scene implements MouseListenerEvent {
 
 	protected static enum Status {
-		NONE, READY, RUN, PAUSE, OVER
+		NONE, READY, RUN, BOSS, PAUSE, OVER
 	}
 
-	private final TimesRecord timesRecord = new TimesRecord();
+	private final TimesRecord timesRecord = new TimesRecord(); // 时间记录器
 	protected Status status; // 状态
 	protected GameBg bgImage; // 背景图片
 	protected Image gamePauseImage; // 游戏暂停图片
@@ -44,35 +46,33 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 	protected List<PlayerBullet> playerBulletList; // 玩家子弹
 	protected List<Enemy> enemyList; // 敌人
 	protected List<Blast> blastList; // 爆炸
+	protected List<ItemMover> itemList; // 道具
 	protected Set<Sound> soundSet; // 音效
 
-	public GameRun(SceneNameEnum name, GameBg bgImage, Sound bgSound, List<Player> playerList) {
+	public GameRun(SceneNameEnum name) {
 		super(name);
+		init();
+	}
+
+	protected void init() {
 		this.status = Status.NONE;
-		this.bgImage = bgImage;
 		this.gamePauseImage = new Image(ImageEnum.GAME_PAUSE, 0, 0, UIConfig.INSTANCE.getWindowWidth(),
 				UIConfig.INSTANCE.getWindowHeight());
 		this.gameOverImage = new Image(ImageEnum.GAME_OVER, 0, 0, UIConfig.INSTANCE.getWindowWidth(),
 				UIConfig.INSTANCE.getWindowHeight());
-		this.bgSound = bgSound;
-		this.playerList = playerList;
+		this.playerList = new ArrayList<>();
 		this.playerBulletList = new ArrayList<>();
 		this.enemyList = new ArrayList<>();
 		this.blastList = new ArrayList<>();
+		this.itemList = new ArrayList<>();
 		this.soundSet = new HashSet<>();
 	}
 
 	@Override
 	public void refresh(Graphics g) {
 		timesRecord.plusRefreshTimes();
-		if (timesRecord.getRefreshTimes() == 500) {
-			this.status = Status.READY;
-			soundSet.add(new DefaultSound(SoundPathEnum.GAME_READY));
-		} else if (timesRecord.getRefreshTimes() == 1500) {
-			this.status = Status.RUN;
-		}
+		status();
 		animation();
-		over();
 		move();
 		hit();
 		produce();
@@ -81,16 +81,21 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 		draw(g);
 	}
 
+	protected void status() {
+		if (timesRecord.getRefreshTimes() == 500) {
+			setStatus(Status.READY);
+		} else if (timesRecord.getRefreshTimes() == 1500) {
+			setStatus(Status.RUN);
+		}
+		if (playerList.isEmpty()) {
+			setStatus(Status.OVER);
+		}
+	}
+
 	protected void animation() {
 		playerList.forEach(Player::animation);
 		enemyList.forEach(Enemy::animation);
 		blastList.forEach(Blast::animation);
-	}
-
-	protected void over() {
-		if (playerList.isEmpty()) {
-			this.status = Status.OVER;
-		}
 	}
 
 	protected void move() {
@@ -101,12 +106,19 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 		playerList.forEach(Player::move);
 		playerBulletList.forEach(PlayerBullet::move);
 		enemyList.forEach(Enemy::move);
+		itemList.forEach(ItemMover::move);
 	}
 
 	protected void hit() {
 		if (status != Status.RUN) {
 			return;
 		}
+		itemList.forEach(item -> {
+			playerList.forEach(player -> {
+				item.checkHit(player);
+				player.checkHit(item);
+			});
+		});
 		enemyList.forEach(enemy -> {
 			playerList.forEach(player -> {
 				enemy.checkHit(player);
@@ -119,13 +131,22 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 		});
 	}
 
-	public void produce() {
+	protected void produce() {
 		if (status != Status.RUN) {
 			return;
 		}
+		produceItem();
 		produceBlast();
 		producePlayerBullet();
 		produceEnemy(timesRecord.getRefreshTimes());
+	}
+
+	protected void produceItem() {
+		enemyList.forEach(enemy -> {
+			if (enemy.isDead()) {
+				itemList.addAll(enemy.item());
+			}
+		});
 	}
 
 	protected void produceBlast() {
@@ -154,14 +175,16 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 
 	protected abstract void produceEnemy(int refreshTimes);
 
-	public void remove() {
+	protected void remove() {
 		playerList.removeIf(player -> player.isDead());
-		playerBulletList.removeIf(playerBullet -> playerBullet.isDead());
-		enemyList.removeIf(enemy -> enemy.isDead());
+		playerBulletList.removeIf(playerBullet -> playerBullet.isDead() || playerBullet.isOut());
+		enemyList.removeIf(enemy -> enemy.isDead() || enemy.isOut());
+		itemList.removeIf(item -> item.isDead() || item.isOut());
 		blastList.removeIf(blast -> blast.isOver());
 	}
 
-	public void sound() {
+	protected void sound() {
+		playerList.forEach(player -> player.sound());
 		Set<Sound> soundCache = soundSet;
 		soundSet = new HashSet<>();
 		soundCache.forEach(sound -> {
@@ -169,10 +192,11 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 		});
 	}
 
-	public void draw(Graphics g) {
+	protected void draw(Graphics g) {
 		bgImage.draw(g);
-		playerList.forEach(player -> player.draw(g));
 		blastList.forEach(blast -> blast.draw(g));
+		playerList.forEach(player -> player.draw(g));
+		itemList.forEach(item -> item.draw(g));
 		enemyList.forEach(enemy -> enemy.draw(g));
 		playerBulletList.forEach(playerBullet -> playerBullet.draw(g));
 		if (status == Status.PAUSE) {
@@ -180,7 +204,26 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 		} else if (status == Status.OVER) {
 			gameOverImage.draw(g);
 		}
+	}
 
+	protected void setStatus(Status status) {
+		if (status == this.status) {
+			return;
+		}
+		if (status == Status.NONE) {
+			Window.INSTANCE.showScene(new Ready());
+		} else if (status == Status.READY) {
+			this.status = Status.READY;
+			soundSet.add(new DefaultSound(SoundPathEnum.GAME_READY));
+		} else if (status == Status.RUN) {
+			this.status = Status.RUN;
+		} else if (status == Status.BOSS) {
+			this.status = Status.BOSS;
+		} else if (status == Status.PAUSE) {
+			this.status = Status.PAUSE;
+		} else if (status == Status.OVER) {
+			this.status = Status.OVER;
+		}
 	}
 
 	@Override
@@ -216,11 +259,11 @@ public abstract class GameRun extends Scene implements MouseListenerEvent {
 	@Override
 	public void mouseCallback(MouseEvent event) {
 		if (event.getID() == MouseEvent.MOUSE_ENTERED && status == Status.PAUSE) {
-			this.status = Status.RUN;
+			setStatus(Status.RUN);
 		} else if (event.getID() == MouseEvent.MOUSE_EXITED && status == Status.RUN) {
-			this.status = Status.PAUSE;
+			setStatus(Status.PAUSE);
 		} else if (event.getID() == MouseEvent.MOUSE_RELEASED && status == Status.OVER) {
-			this.status = Status.READY;
+			setStatus(Status.NONE);
 		}
 	}
 }

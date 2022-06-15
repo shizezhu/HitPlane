@@ -2,6 +2,12 @@ package cn.szz.plane.core.entity.paint;
 
 import cn.szz.plane.core.entity.em.PartAlignEnum;
 
+/**
+ * 坐标零件
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午11:01:33
+ */
 public class CoordinatePart extends CoordinateImage {
 
 	protected Rect parent;

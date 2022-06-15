@@ -17,7 +17,7 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 		try {
 			Window.INSTANCE.showScene(new Ready());
-			ExecutorUtils.scheduleAtFixedRate(Window.INSTANCE::refresh, 2, 2, TimeUnit.MILLISECONDS);
+			ExecutorUtils.scheduleWithFixedDelay(Window.INSTANCE::refresh, 2, 2, TimeUnit.MILLISECONDS);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

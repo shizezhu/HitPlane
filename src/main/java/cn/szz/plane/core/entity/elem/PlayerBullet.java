@@ -39,13 +39,20 @@ public class PlayerBullet extends FlyObj implements Mover {
 	}
 
 	@Override
-	public boolean isDead() {
-		return super.isDead() || isOut();
-	}
-
-	@Override
 	public Blast blast() {
 		return new PlayerBulletBlast(rect);
+	}
+	
+	@Override
+	public void checkHit(FlyObj flyObj) {
+		if (!isHit(flyObj)) {
+			return;
+		}
+		subLife(flyObj.getDamage());
+		if (flyObj instanceof Enemy) {
+			Enemy enemy = (Enemy) flyObj;
+			getPlayer().addScore(enemy.getValue());
+		}
 	}
 
 	protected CoordinateImage getCoordinateImage(Rect playerImage, Coordinate coordinate, int type) {

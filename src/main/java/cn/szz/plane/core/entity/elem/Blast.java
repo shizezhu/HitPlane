@@ -21,7 +21,7 @@ public class Blast implements Painter, Animator {
 	public Blast(Rect rect) {
 		this.images = getCoordinateImage(rect);
 		this.index = 0;
-		this.speed = 10;
+		this.speed = 20;
 	}
 
 	protected CoordinateImage[] getCoordinateImage(Rect rect) {

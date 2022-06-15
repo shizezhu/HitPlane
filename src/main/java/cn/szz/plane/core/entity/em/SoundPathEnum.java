@@ -2,6 +2,12 @@ package cn.szz.plane.core.entity.em;
 
 import java.net.URL;
 
+/**
+ * 声音
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午11:00:53
+ */
 public enum SoundPathEnum {
 
     READY_BG("/sound/ready_bg.wav"),
@@ -14,7 +20,8 @@ public enum SoundPathEnum {
     ENEMY_BLAST("/sound/enemy_blast.wav"),
     PLAYER_BLAST("/sound/player_blast.wav"),
     PLAYER_BULLET_BLAST("/sound/player_bullet_blast.wav"),
-    UPGRADE("/sound/upgrade.wav"),
+    LEVEL("/sound/level.wav"),
+    STAR("/sound/star.wav"),
     ;
 
     private String path;

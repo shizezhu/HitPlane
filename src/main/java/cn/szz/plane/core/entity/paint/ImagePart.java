@@ -5,6 +5,12 @@ import java.awt.image.BufferedImage;
 import cn.szz.plane.core.entity.em.ImageEnum;
 import cn.szz.plane.core.entity.em.PartAlignEnum;
 
+/**
+ * 图片零件
+ * 
+ * @author shizezhu
+ * @time 2022年4月12日 上午11:01:09
+ */
 public class ImagePart extends Image {
 
 	protected Rect parent;
