@@ -99,7 +99,9 @@ public class GameLeve05Run extends GameRun {
 				enemyList.add(new Enemy(13, RandomUtils.nextInt(1, 5) == 1 ? 3 : 0, 0));
 			}
 		} else {
-			setStatus(Status.OVER);
+			if (enemyList.isEmpty() && blastList.isEmpty()) {
+				setStatus(Status.OVER);
+			}
 		}
 	}
 }

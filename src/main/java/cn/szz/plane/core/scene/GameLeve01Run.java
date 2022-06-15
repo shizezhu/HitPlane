@@ -100,7 +100,9 @@ public class GameLeve01Run extends GameRun {
 				enemyList.add(new Enemy(9, RandomUtils.nextInt(1, 5) == 1 ? 3 : 0, 0));
 			}
 		} else {
-			Window.INSTANCE.showScene(new GameLeve02Run(playerList), true);
+			if (enemyList.isEmpty() && blastList.isEmpty()) {
+				Window.INSTANCE.showScene(new GameLeve02Run(playerList), true);
+			}
 		}
 	}
 }
