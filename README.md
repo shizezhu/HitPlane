@@ -1,3 +1,3 @@
-# HitPlane2
-飞机大战游戏2
-未开发完成
+<h1>飞机大战</h1>
+<p>Java开发的小游戏</p>
+<video src="https://www.ixigua.com/7109392850470568486">视频</video>
